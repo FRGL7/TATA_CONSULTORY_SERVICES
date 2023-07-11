@@ -12,7 +12,7 @@
 	<groupId>com.frg</groupId>
 	<artifactId>spring-batch</artifactId>
 	<version>0.0.1-SNAPSHOT</version>
-	<name>spring-batch-Json</name>
+	<name>spring-batch-jdbc</name>
 	<description>spring-batch</description>
 	<properties>
 		<java.version>1.8</java.version>
@@ -22,6 +22,21 @@
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-batch</artifactId>
 		</dependency>
+		
+		<dependency>
+			<groupId>org.springframework</groupId>
+			<artifactId>spring-oxm</artifactId>
+		</dependency>
+		
+		<!-- these 2 only required if java version > 8 -->
+		<!-- <dependency>
+			<groupId>jakarta.xml.bind</groupId>
+			<artifactId>jakarta.xml.bind-api</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>org.glassfish.jaxb</groupId>
+			<artifactId>jaxb-runtime</artifactId>
+		</dependency> -->
 
 		<dependency>
 			<groupId>mysql</groupId>

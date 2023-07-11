@@ -1,6 +1,6 @@
 package com.frg.model;
 
-public class StudentJson {
+public class StudentJdbc {
 
 	private Long id;
 
@@ -44,7 +44,7 @@ public class StudentJson {
 
 	@Override
 	public String toString() {
-		return "StudentJson [id=" + id + ", firstName=" + firstName + ", lastName=" + lastName + ", email=" + email
+		return "StudentJdbc [id=" + id + ", firstName=" + firstName + ", lastName=" + lastName + ", email=" + email
 				+ "]";
 	}
 

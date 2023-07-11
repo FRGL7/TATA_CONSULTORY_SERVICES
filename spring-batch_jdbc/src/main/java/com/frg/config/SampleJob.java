@@ -1,25 +1,36 @@
 package com.frg.config;
 
+import javax.sql.DataSource;
+
 import org.springframework.batch.core.Job;
 import org.springframework.batch.core.Step;
 import org.springframework.batch.core.configuration.annotation.JobBuilderFactory;
 import org.springframework.batch.core.configuration.annotation.StepBuilderFactory;
 import org.springframework.batch.core.configuration.annotation.StepScope;
 import org.springframework.batch.core.launch.support.RunIdIncrementer;
+import org.springframework.batch.item.database.JdbcCursorItemReader;
 import org.springframework.batch.item.file.FlatFileItemReader;
 import org.springframework.batch.item.file.mapping.BeanWrapperFieldSetMapper;
 import org.springframework.batch.item.file.mapping.DefaultLineMapper;
 import org.springframework.batch.item.file.transform.DelimitedLineTokenizer;
+import org.springframework.batch.item.json.JacksonJsonObjectReader;
+import org.springframework.batch.item.json.JsonItemReader;
+import org.springframework.batch.item.xml.StaxEventItemReader;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.io.FileSystemResource;
+import org.springframework.jdbc.core.BeanPropertyRowMapper;
+import org.springframework.oxm.jaxb.Jaxb2Marshaller;
 
-import com.frg.model.StudentCsv;
-import com.frg.processor.FirstItemProcessor;
-import com.frg.reader.FirstItemReader;
-import com.frg.writer.FirstItemWriter;
+import com.infybuzz.model.StudentCsv;
+import com.infybuzz.model.StudentJdbc;
+import com.infybuzz.model.StudentJson;
+import com.infybuzz.model.StudentXml;
+import com.infybuzz.processor.FirstItemProcessor;
+import com.infybuzz.reader.FirstItemReader;
+import com.infybuzz.writer.FirstItemWriter;
 
 @Configuration
 public class SampleJob {
@@ -38,6 +49,9 @@ public class SampleJob {
 	
 	@Autowired
 	private FirstItemWriter firstItemWriter;
+	
+	@Autowired
+	private DataSource datasource;
 
 	@Bean
 	public Job chunkJob() {
@@ -49,8 +63,11 @@ public class SampleJob {
 	
 	private Step firstChunkStep() {
 		return stepBuilderFactory.get("First Chunk Step")
-				.<StudentCsv, StudentCsv>chunk(3)
-				.reader(flatFileItemReader(null))
+				.<StudentJdbc, StudentJdbc>chunk(3)
+				//.reader(flatFileItemReader(null))
+				//.reader(jsonItemReader(null))
+				//.reader(staxEventItemReader(null))
+				.reader(jdbcCursorItemReader())
 				//.processor(firstItemProcessor)
 				.writer(firstItemWriter)
 				.build();
@@ -105,4 +122,59 @@ public class SampleJob {
 		return flatFileItemReader;
 	}
 
+	@StepScope
+	@Bean
+	public JsonItemReader<StudentJson> jsonItemReader(
+			@Value("#{jobParameters['inputFile']}") FileSystemResource fileSystemResource) {
+		JsonItemReader<StudentJson> jsonItemReader = 
+				new JsonItemReader<StudentJson>();
+		
+		jsonItemReader.setResource(fileSystemResource);
+		jsonItemReader.setJsonObjectReader(
+				new JacksonJsonObjectReader<>(StudentJson.class));
+		
+		jsonItemReader.setMaxItemCount(8);
+		jsonItemReader.setCurrentItemCount(2);
+		
+		return jsonItemReader;
+	}
+	
+	@StepScope
+	@Bean
+	public StaxEventItemReader<StudentXml> staxEventItemReader(
+			@Value("#{jobParameters['inputFile']}") FileSystemResource fileSystemResource) {
+		StaxEventItemReader<StudentXml> staxEventItemReader = 
+				new StaxEventItemReader<StudentXml>();
+		
+		staxEventItemReader.setResource(fileSystemResource);
+		staxEventItemReader.setFragmentRootElementName("student");
+		staxEventItemReader.setUnmarshaller(new Jaxb2Marshaller() {
+			{
+				setClassesToBeBound(StudentXml.class);
+			}
+		});
+		
+		return staxEventItemReader;
+	}
+	
+	public JdbcCursorItemReader<StudentJdbc> jdbcCursorItemReader() {
+		JdbcCursorItemReader<StudentJdbc> jdbcCursorItemReader = 
+				new JdbcCursorItemReader<StudentJdbc>();
+		
+		jdbcCursorItemReader.setDataSource(datasource);
+		jdbcCursorItemReader.setSql(
+				"select id, first_name as firstName, last_name as lastName,"
+				+ "email from student");
+		
+		jdbcCursorItemReader.setRowMapper(new BeanPropertyRowMapper<StudentJdbc>() {
+			{
+				setMappedClass(StudentJdbc.class);
+			}
+		});
+		
+		jdbcCursorItemReader.setCurrentItemCount(2);
+		jdbcCursorItemReader.setMaxItemCount(8);
+		
+		return jdbcCursorItemReader;
+	}
 }
